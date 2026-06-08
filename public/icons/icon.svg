@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- 背景圆 -->
+  <circle cx="64" cy="64" r="60" fill="#2196F3" />
+
+  <!-- 放大镜镜片 -->
+  <circle cx="54" cy="52" r="26" fill="none" stroke="#FFFFFF" stroke-width="5" />
+
+  <!-- 放大镜高光 -->
+  <ellipse cx="44" cy="42" rx="8" ry="10" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.5" />
+
+  <!-- 放大镜手柄 -->
+  <line x1="72" y1="70" x2="98" y2="96" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+
+  <!-- 鼠标指针箭头 -->
+  <path d="M 78 30 L 68 50 L 76 52 L 70 68 L 80 62 L 78 30 Z" fill="#FFC107" stroke="#FF9800" stroke-width="1.5" stroke-linejoin="round" />
+</svg>

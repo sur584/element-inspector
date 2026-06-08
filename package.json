@@ -1,0 +1,40 @@
+{
+  "name": "element-inspector",
+  "version": "1.0.0",
+  "description": "浏览器插件 - 鼠标悬停检查页面元素信息，支持多种格式复制，便于AI辅助前端开发",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt dev",
+    "dev:chrome": "wxt dev -b chrome",
+    "dev:firefox": "wxt dev -b firefox",
+    "dev:edge": "wxt dev -b edge",
+    "build": "wxt build",
+    "build:chrome": "wxt build -b chrome",
+    "build:firefox": "wxt build -b firefox",
+    "build:edge": "wxt build -b edge",
+    "zip": "wxt zip",
+    "zip:chrome": "wxt zip -b chrome",
+    "zip:firefox": "wxt zip -b firefox",
+    "zip:edge": "wxt zip -b edge",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "@wxt-dev/module-react": "^1.0.0",
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5",
+    "wxt": "^0.19.14"
+  }
+}
