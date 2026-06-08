@@ -200,7 +200,15 @@ function installGlobalShortcuts(): void {
       return;
     }
 
-    // 从配置读取切换快捷键（支持自定义）
+    // 关闭快捷键（从配置读取，支持自定义）
+    const closeShortcut = currentConfig.shortcuts?.close || 'Escape';
+    if (inspectorActive && matchesShortcut(e, closeShortcut)) {
+      e.preventDefault();
+      disableInspector();
+      return;
+    }
+
+    // 切换快捷键（从配置读取，支持自定义）
     const toggleShortcut = currentConfig.shortcuts?.toggle || 'Ctrl+Shift+E';
     if (matchesShortcut(e, toggleShortcut)) {
       e.preventDefault();

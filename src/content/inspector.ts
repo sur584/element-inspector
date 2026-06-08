@@ -217,17 +217,6 @@ function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
 function handleKeyDown(event: KeyboardEvent): void {
   if (!enabled) return;
 
-  // 关闭检查器
-  if (matchesShortcut(event, config.shortcuts.close)) {
-    const target = event.target as Element;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || (target as HTMLElement).isContentEditable)) {
-      return;
-    }
-    event.preventDefault();
-    destroyInspector();
-    return;
-  }
-
   // 冻结/解冻当前元素信息
   if (matchesShortcut(event, config.shortcuts.freeze)) {
     // 忽略在输入框中的按键
