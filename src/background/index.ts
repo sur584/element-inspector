@@ -39,31 +39,26 @@ chrome.commands?.onCommand.addListener(async (command: string) => {
 onBackgroundMessage(async (message: Message, sender: chrome.runtime.MessageSender) => {
   switch (message.type) {
     case 'GET_STATE': {
-      const config = await storage.getConfig();
-      const response: Message<{ enabled: boolean }> = {
-        type: 'STATE_RESPONSE',
-        payload: { enabled: config.enabled },
-      };
-      // 通过 sender 回复
+      // 回复发送者的当前状态（per-tab）
       if (sender.tab?.id) {
+        const response: Message<{ enabled: boolean }> = {
+          type: 'STATE_RESPONSE',
+          payload: { enabled: false }, // 每个标签页独立管理状态
+        };
         chrome.tabs.sendMessage(sender.tab.id, response).catch(() => {});
       }
       break;
     }
 
     case 'TOGGLE_INSPECTOR': {
-      const config = await storage.getConfig();
-      const newEnabled = !config.enabled;
-      await storage.updateConfig({ enabled: newEnabled });
-
-      // 广播给当前活动标签页
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id) {
+      // 直接转发给发送者的标签页（per-tab toggle）
+      const payload = message.payload as { enabled?: boolean } | undefined;
+      if (sender.tab?.id && payload) {
         const msg: Message<{ enabled: boolean }> = {
           type: 'TOGGLE_INSPECTOR',
-          payload: { enabled: newEnabled },
+          payload: { enabled: payload.enabled ?? false },
         };
-        chrome.tabs.sendMessage(tab.id, msg).catch(() => {});
+        chrome.tabs.sendMessage(sender.tab.id, msg).catch(() => {});
       }
       break;
     }
@@ -78,43 +73,6 @@ onBackgroundMessage(async (message: Message, sender: chrome.runtime.MessageSende
     }
 
     default:
-      // 未知消息类型，忽略
       break;
-  }
-});
-
-// ---------------------------------------------------------------------------
-// 监听标签页激活，同步检查器状态到新激活的标签页
-// ---------------------------------------------------------------------------
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  try {
-    const config = await storage.getConfig();
-    const msg: Message<{ enabled: boolean }> = {
-      type: 'TOGGLE_INSPECTOR',
-      payload: { enabled: config.enabled },
-    };
-    chrome.tabs.sendMessage(activeInfo.tabId, msg).catch(() => {
-      // 目标标签页可能没有 content script
-    });
-  } catch {
-    // storage 读取失败，忽略
-  }
-});
-
-// ---------------------------------------------------------------------------
-// 监听标签页导航完成，确保 content script 收到最新状态
-// ---------------------------------------------------------------------------
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  if (changeInfo.status === 'complete') {
-    try {
-      const config = await storage.getConfig();
-      const msg: Message<{ enabled: boolean }> = {
-        type: 'TOGGLE_INSPECTOR',
-        payload: { enabled: config.enabled },
-      };
-      chrome.tabs.sendMessage(tabId, msg).catch(() => {});
-    } catch {
-      // 忽略
-    }
   }
 });

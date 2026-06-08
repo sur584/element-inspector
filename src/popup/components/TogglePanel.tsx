@@ -1,5 +1,4 @@
 import React from 'react';
-import { storage } from '../../shared/storage';
 import { sendMessage } from '../../shared/messaging';
 
 interface TogglePanelProps {
@@ -10,7 +9,6 @@ interface TogglePanelProps {
 const TogglePanel: React.FC<TogglePanelProps> = ({ enabled, onToggle }) => {
   const handleToggle = async () => {
     const newEnabled = !enabled;
-    await storage.updateConfig({ enabled: newEnabled });
     onToggle(newEnabled);
 
     try {

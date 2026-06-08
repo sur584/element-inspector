@@ -20,10 +20,24 @@ const App: React.FC = () => {
   const [lastCopied, setLastCopied] = useState<LastCopiedInfo | null>(null);
 
   useEffect(() => {
-    // Load saved configuration
+    // Load format config from storage
     storage.getConfig().then((config) => {
-      setEnabled(config.enabled);
       setDefaultFormat(config.defaultFormat);
+    });
+
+    // Query current tab's inspector state via message (per-tab, not global)
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_STATE' }, (response) => {
+          if (chrome.runtime.lastError) {
+            setEnabled(false);
+          } else if (response?.payload) {
+            setEnabled(response.payload.enabled);
+          } else {
+            setEnabled(false);
+          }
+        });
+      }
     });
 
     // Restore last-copied element from storage

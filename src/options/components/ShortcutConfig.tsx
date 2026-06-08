@@ -12,7 +12,7 @@ const SHORTCUT_DEFINITIONS = [
     key: 'toggle' as const,
     label: '切换检查器',
     description: '开启/关闭元素检查器',
-    default: 'Ctrl+Shift+I',
+    default: 'Ctrl+Shift+E',
     isMouse: false,
   },
   {
@@ -88,7 +88,7 @@ const ShortcutConfig: React.FC<ShortcutConfigProps> = ({ shortcuts, onChange }) 
 
   const handleResetAll = () => {
     const defaults: ShortcutConfigType = {
-      toggle: 'Ctrl+Shift+I',
+      toggle: 'Ctrl+Shift+E',
       copy: 'C',
       close: 'Escape',
       freeze: 'X',

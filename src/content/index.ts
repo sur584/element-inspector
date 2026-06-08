@@ -72,18 +72,14 @@ function showStatusToast(message: string): void {
  * Reads stored config and sets up message / storage listeners.
  */
 async function bootstrap(): Promise<void> {
-  // Read initial config
+  // Read initial config (but don't auto-activate — each tab starts inactive)
   currentConfig = await storage.getConfig();
-
-  // If the inspector was previously enabled, re-activate
-  if (currentConfig.enabled) {
-    activateInspector();
-  }
+  currentConfig.enabled = false;
 
   // Listen for messages from background / popup
   chrome.runtime.onMessage.addListener(handleMessage);
 
-  // Listen for storage changes (e.g. popup toggles or config edits)
+  // Listen for storage changes (config updates only, not activation)
   chrome.storage.onChanged.addListener(handleStorageChange);
 
   // Global keyboard shortcuts (always active)
@@ -151,13 +147,8 @@ function handleStorageChange(
 
     currentConfig = newConfig;
 
-    // Toggle inspector if enabled state changed
-    if (currentConfig.enabled && !inspectorActive) {
-      activateInspector();
-    } else if (!currentConfig.enabled && inspectorActive) {
-      deactivateInspector();
-    } else if (inspectorActive) {
-      // Config changed while active — push update
+    // Only update config if inspector is active — don't auto-activate/deactivate
+    if (inspectorActive) {
       updateInspectorConfig(currentConfig);
     }
   }
@@ -209,8 +200,9 @@ function installGlobalShortcuts(): void {
       return;
     }
 
-    // Escape: 切换检查器开关
-    if (e.key === 'Escape') {
+    // 从配置读取切换快捷键（支持自定义）
+    const toggleShortcut = currentConfig.shortcuts?.toggle || 'Ctrl+Shift+E';
+    if (matchesShortcut(e, toggleShortcut)) {
       e.preventDefault();
       if (inspectorActive) {
         disableInspector();
@@ -221,6 +213,30 @@ function installGlobalShortcuts(): void {
     }
   };
   document.addEventListener('keydown', globalKeyHandler, { capture: true });
+}
+
+function parseShortcut(shortcut: string): { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean; key: string } {
+  const parts = shortcut.split('+');
+  const key = parts[parts.length - 1].toLowerCase();
+  return {
+    ctrl: parts.slice(0, -1).some((p) => p.toLowerCase() === 'ctrl'),
+    alt: parts.slice(0, -1).some((p) => p.toLowerCase() === 'alt'),
+    shift: parts.slice(0, -1).some((p) => p.toLowerCase() === 'shift'),
+    meta: parts.slice(0, -1).some((p) => p.toLowerCase() === 'meta'),
+    key,
+  };
+}
+
+function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
+  const s = parseShortcut(shortcut);
+  const eventKey = event.key.toLowerCase();
+  return (
+    event.ctrlKey === s.ctrl &&
+    event.altKey === s.alt &&
+    event.shiftKey === s.shift &&
+    event.metaKey === s.meta &&
+    eventKey === s.key
+  );
 }
 
 // --- Helpers ---

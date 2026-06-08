@@ -154,8 +154,15 @@ function handleClick(event: MouseEvent): void {
   // Only stop propagation, not preventDefault — allow normal page interactions
   event.stopPropagation();
 
+  // 直接使用点击目标，不依赖 currentTarget
   const info = getElementInfo(target, config);
-  handleCopy(config.defaultFormat);
+  copyElementInfo(info, config.defaultFormat as import('../shared/types').CopyFormatId, config).then(
+    (ok) => {
+      if (ok) {
+        overlay.showCopiedStatus();
+      }
+    },
+  );
 }
 
 /**
@@ -233,8 +240,15 @@ function handleKeyDown(event: KeyboardEvent): void {
     event.stopPropagation();
     frozen = !frozen;
     if (frozen) {
+      // 冻结时取消待定的隐藏定时器，防止 tooltip 消失
+      if (hideTimeoutId !== null) {
+        clearTimeout(hideTimeoutId);
+        hideTimeoutId = null;
+      }
       overlay.showFreezeBadge();
     } else {
+      // 解冻时重置 currentTarget，确保下次悬停能触发新的显示
+      currentTarget = null;
       overlay.hideFreezeBadge();
     }
     return;
