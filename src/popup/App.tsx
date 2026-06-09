@@ -18,11 +18,13 @@ const App: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
   const [defaultFormat, setDefaultFormat] = useState<CopyFormatId>('ai-friendly');
   const [lastCopied, setLastCopied] = useState<LastCopiedInfo | null>(null);
+  const [devtoolsEnabled, setDevtoolsEnabled] = useState(true);
 
   useEffect(() => {
-    // Load format config from storage
+    // Load config from storage
     storage.getConfig().then((config) => {
       setDefaultFormat(config.defaultFormat);
+      setDevtoolsEnabled(config.devtools?.enabled ?? true);
     });
 
     // Query current tab's inspector state via message (per-tab, not global)
@@ -59,6 +61,14 @@ const App: React.FC = () => {
     onMessage(handler);
   }, []);
 
+  const toggleDevToolsPanel = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'TOGGLE_DEVTOOLS_PANEL' });
+      }
+    });
+  };
+
   return (
     <div className="popup-app">
       <header className="popup-header">
@@ -75,6 +85,36 @@ const App: React.FC = () => {
       <div className="divider" />
 
       <QuickSettings lastCopied={lastCopied} enabled={enabled} />
+
+      {/* DevTools 面板按钮 */}
+      {devtoolsEnabled && (
+        <>
+          <div className="divider" />
+          <div style={{ padding: '12px' }}>
+            <button
+              onClick={toggleDevToolsPanel}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: '#0d47a1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>&#128295;</span>
+              打开 DevTools 面板
+            </button>
+          </div>
+        </>
+      )}
 
       <footer className="popup-footer">
         <a

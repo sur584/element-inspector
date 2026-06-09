@@ -5,7 +5,7 @@ export default defineConfig({
   manifest: {
     name: 'Element Inspector - AI Helper',
     description: '鼠标悬停检查页面元素信息，支持多种格式复制，便于AI辅助前端开发',
-    version: '1.0.0',
+    version: '1.1.0',
     permissions: ['storage', 'activeTab', 'clipboardWrite'],
     host_permissions: ['<all_urls>'],
     action: {
@@ -33,5 +33,11 @@ export default defineConfig({
         description: '切换元素检查器',
       },
     },
+    web_accessible_resources: [
+      {
+        resources: ['inject.js'],
+        matches: ['<all_urls>'],
+      },
+    ],
   },
 });

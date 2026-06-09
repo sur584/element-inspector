@@ -8,16 +8,24 @@
  */
 
 import type { UserConfig, Message } from '../shared/types';
+import type { InjectedMessage, ConsoleEntry, NetworkEntry, ErrorEntry } from '../shared/devtools-types';
 import { DEFAULT_CONFIG } from '../shared/constants';
 import { storage } from '../shared/storage';
 import { initInspector, destroyInspector, updateInspectorConfig } from './inspector';
 import { initOverlay, destroyOverlay } from './overlay';
+import { consoleCollector } from './collectors/console';
+import { networkCollector } from './collectors/network';
+import { errorCollector } from './collectors/errors';
+import { domSnapshotCollector } from './collectors/dom-snapshot';
+import { getDevToolsPanel, destroyDevToolsPanel } from './devtools-panel';
 
 // --- State ---
 let currentConfig: UserConfig = structuredClone(DEFAULT_CONFIG);
 let inspectorActive = false;
+let devtoolsPanelVisible = false;
 let globalKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 let toastTimer: number | null = null;
+let injectScriptLoaded = false;
 
 // --- Standalone Toast (独立于 overlay，关闭检查器后仍可显示) ---
 
@@ -84,6 +92,71 @@ async function bootstrap(): Promise<void> {
 
   // Global keyboard shortcuts (always active)
   installGlobalShortcuts();
+
+  // 初始化 DevTools 功能
+  if (currentConfig.devtools?.enabled) {
+    injectDevToolsScript();
+    setupDevToolsListeners();
+  }
+}
+
+// --- DevTools 功能 ---
+
+/**
+ * 注入页面脚本以捕获 console/network/errors
+ */
+function injectDevToolsScript(): void {
+  if (injectScriptLoaded) return;
+
+  const script = document.createElement('script');
+  script.src = chrome.runtime.getURL('inject.js');
+  script.onload = () => script.remove();
+  (document.head || document.documentElement).appendChild(script);
+
+  injectScriptLoaded = true;
+}
+
+/**
+ * 设置 DevTools 事件监听器
+ */
+function setupDevToolsListeners(): void {
+  window.addEventListener('message', (event: MessageEvent<InjectedMessage>) => {
+    // 验证消息来源
+    if (event.source !== window) return;
+    if (!event.data || typeof event.data !== 'object') return;
+
+    const { type, data } = event.data;
+
+    switch (type) {
+      case 'console':
+        consoleCollector.addEntry(data as ConsoleEntry);
+        break;
+      case 'network':
+        networkCollector.addEntry(data as NetworkEntry);
+        break;
+      case 'error':
+      case 'unhandledrejection':
+        errorCollector.addEntry(data as ErrorEntry);
+        break;
+    }
+  });
+}
+
+/**
+ * 处理 DevTools 面板切换
+ */
+function toggleDevToolsPanel(visible?: boolean): void {
+  const panel = getDevToolsPanel();
+
+  if (visible === undefined) {
+    panel.toggle();
+  } else if (visible) {
+    panel.show();
+  } else {
+    panel.hide();
+  }
+
+  devtoolsPanelVisible = panel.isVisible();
 }
 
 // --- Message Handler ---
@@ -125,6 +198,81 @@ function handleMessage(
     case 'GET_STATE': {
       // Respond with current state if needed
       // sendResponse is not used here because the listener returns false
+      break;
+    }
+
+    case 'TOGGLE_DEVTOOLS_PANEL': {
+      const panelPayload = message.payload as { visible?: boolean } | undefined;
+      toggleDevToolsPanel(panelPayload?.visible);
+      break;
+    }
+
+    case 'GET_DEVTOOLS_DATA': {
+      const dataPayload = message.payload as { type?: string; filter?: any } | undefined;
+      if (dataPayload?.type) {
+        let data: any = {};
+        switch (dataPayload.type) {
+          case 'console':
+            data.console = consoleCollector.getEntries(dataPayload.filter);
+            break;
+          case 'network':
+            data.network = networkCollector.getEntries(dataPayload.filter);
+            break;
+          case 'errors':
+            data.errors = errorCollector.getEntries(dataPayload.filter);
+            break;
+          case 'all':
+            data.console = consoleCollector.getEntries();
+            data.network = networkCollector.getEntries();
+            data.errors = errorCollector.getEntries();
+            break;
+        }
+        _sendResponse({ type: 'DEVTOOLS_DATA_RESPONSE', payload: data });
+      }
+      return true; // 异步响应
+    }
+
+    case 'CLEAR_DEVTOOLS_DATA': {
+      const clearPayload = message.payload as { type?: string } | undefined;
+      switch (clearPayload?.type) {
+        case 'console':
+          consoleCollector.clear();
+          break;
+        case 'network':
+          networkCollector.clear();
+          break;
+        case 'errors':
+          errorCollector.clear();
+          break;
+        case 'all':
+          consoleCollector.clear();
+          networkCollector.clear();
+          errorCollector.clear();
+          break;
+      }
+      break;
+    }
+
+    case 'TAKE_DOM_SNAPSHOT': {
+      const snapshotPayload = message.payload as { options?: any } | undefined;
+      const snapshot = domSnapshotCollector.takeSnapshot(snapshotPayload?.options);
+      _sendResponse({ type: 'DOM_SNAPSHOT_RESULT', payload: { snapshot } });
+      return true;
+    }
+
+    case 'UPDATE_DEVTOOLS_CONFIG': {
+      const devtoolsPayload = message.payload as { devtools?: any } | undefined;
+      if (devtoolsPayload?.devtools) {
+        currentConfig.devtools = {
+          ...currentConfig.devtools,
+          ...devtoolsPayload.devtools,
+        };
+        // 如果启用了 devtools，注入脚本
+        if (currentConfig.devtools.enabled && !injectScriptLoaded) {
+          injectDevToolsScript();
+          setupDevToolsListeners();
+        }
+      }
       break;
     }
 

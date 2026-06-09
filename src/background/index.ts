@@ -1,6 +1,7 @@
 import { storage } from '../shared/storage';
 import { onBackgroundMessage } from '../shared/messaging';
 import type { Message } from '../shared/types';
+import type { DevToolsData } from '../shared/devtools-types';
 
 // ---------------------------------------------------------------------------
 // 扩展安装 / 更新时初始化默认配置
@@ -68,6 +69,72 @@ onBackgroundMessage(async (message: Message, sender: chrome.runtime.MessageSende
       const partial = message.payload as Record<string, unknown> | undefined;
       if (partial) {
         await storage.updateConfig(partial as any);
+      }
+      break;
+    }
+
+    case 'TOGGLE_DEVTOOLS_PANEL': {
+      // 转发给发送者的标签页
+      if (sender.tab?.id) {
+        chrome.tabs.sendMessage(sender.tab.id, message).catch(() => {});
+      }
+      break;
+    }
+
+    case 'GET_DEVTOOLS_DATA': {
+      // 转发给发送者的标签页并等待响应
+      if (sender.tab?.id) {
+        try {
+          const response = await chrome.tabs.sendMessage(sender.tab.id, message);
+          // 将响应发送回原始发送者（popup）
+          if (sender.tab.id) {
+            chrome.runtime.sendMessage({
+              type: 'DEVTOOLS_DATA_RESPONSE',
+              payload: response,
+            }).catch(() => {});
+          }
+        } catch (error) {
+          console.error('Failed to get devtools data:', error);
+        }
+      }
+      break;
+    }
+
+    case 'CLEAR_DEVTOOLS_DATA': {
+      // 转发给发送者的标签页
+      if (sender.tab?.id) {
+        chrome.tabs.sendMessage(sender.tab.id, message).catch(() => {});
+      }
+      break;
+    }
+
+    case 'TAKE_DOM_SNAPSHOT': {
+      // 转发给发送者的标签页
+      if (sender.tab?.id) {
+        try {
+          const response = await chrome.tabs.sendMessage(sender.tab.id, message);
+          if (sender.tab.id) {
+            chrome.runtime.sendMessage({
+              type: 'DOM_SNAPSHOT_RESULT',
+              payload: response,
+            }).catch(() => {});
+          }
+        } catch (error) {
+          console.error('Failed to take DOM snapshot:', error);
+        }
+      }
+      break;
+    }
+
+    case 'UPDATE_DEVTOOLS_CONFIG': {
+      // 更新配置并转发给所有标签页
+      const devtoolsPayload = message.payload as { devtools?: any } | undefined;
+      if (devtoolsPayload?.devtools) {
+        await storage.updateConfig({ devtools: devtoolsPayload.devtools } as any);
+      }
+      // 转发给发送者的标签页
+      if (sender.tab?.id) {
+        chrome.tabs.sendMessage(sender.tab.id, message).catch(() => {});
       }
       break;
     }

@@ -52,6 +52,28 @@ export interface UserConfig {
     throttleMs: number;
     maxTextLength: number;
   };
+  devtools: {
+    enabled: boolean;
+    console: {
+      enabled: boolean;
+      maxEntries: number;
+      captureLevels: ('log' | 'info' | 'warn' | 'error' | 'debug')[];
+    };
+    network: {
+      enabled: boolean;
+      maxEntries: number;
+      captureBody: boolean;
+      filterUrls: string[];
+    };
+    errors: {
+      enabled: boolean;
+      maxEntries: number;
+    };
+    domSnapshot: {
+      includeStyles: boolean;
+      maxDepth: number;
+    };
+  };
 }
 
 // 为单个元素收集的信息
@@ -89,7 +111,18 @@ export type MessageType =
   | 'COPY_ELEMENT'
   | 'ELEMENT_HOVERED'
   | 'GET_STATE'
-  | 'STATE_RESPONSE';
+  | 'STATE_RESPONSE'
+  // DevTools 新增消息类型
+  | 'CONSOLE_CAPTURED'
+  | 'NETWORK_CAPTURED'
+  | 'ERROR_CAPTURED'
+  | 'TAKE_DOM_SNAPSHOT'
+  | 'DOM_SNAPSHOT_RESULT'
+  | 'GET_DEVTOOLS_DATA'
+  | 'DEVTOOLS_DATA_RESPONSE'
+  | 'CLEAR_DEVTOOLS_DATA'
+  | 'TOGGLE_DEVTOOLS_PANEL'
+  | 'UPDATE_DEVTOOLS_CONFIG';
 
 // 消息接口
 export interface Message<T = unknown> {

@@ -104,4 +104,26 @@ export const DEFAULT_CONFIG: UserConfig = {
     throttleMs: 50,
     maxTextLength: 200,
   },
+  devtools: {
+    enabled: true,
+    console: {
+      enabled: true,
+      maxEntries: 500,
+      captureLevels: ['log', 'info', 'warn', 'error', 'debug'],
+    },
+    network: {
+      enabled: true,
+      maxEntries: 200,
+      captureBody: true,
+      filterUrls: [],
+    },
+    errors: {
+      enabled: true,
+      maxEntries: 100,
+    },
+    domSnapshot: {
+      includeStyles: false,
+      maxDepth: 10,
+    },
+  },
 };
